@@ -9,3 +9,11 @@ id,title,artist,genre,mood,energy,tempo_bpm,valence,danceability,acousticness
 8,Night Drive Loop,Neon Echo,synthwave,moody,0.75,110,0.49,0.73,0.22
 9,Focus Flow,LoRoom,lofi,focused,0.40,80,0.59,0.60,0.78
 10,Rooftop Lights,Indigo Parade,indie pop,happy,0.76,124,0.81,0.82,0.35
+11,Block Party Anthem,The Groundwork,hip-hop,energetic,0.85,95,0.78,0.91,0.08
+12,Autumn Sonata No. 3,Vera Alcott,classical,melancholic,0.22,52,0.28,0.25,0.97
+13,Neon Ascent,Pulse Grid,edm,euphoric,0.96,140,0.88,0.95,0.02
+14,Dirt Road Memory,Clay Hollow,country,nostalgic,0.55,94,0.68,0.58,0.72
+15,Velvet Hours,Simone Reyes,r&b,romantic,0.61,86,0.75,0.77,0.31
+16,Fracture Point,Iron Veil,metal,angry,0.98,168,0.22,0.52,0.04
+17,Mountain Echo,The Birch Line,folk,peaceful,0.29,76,0.72,0.44,0.91
+18,Last Train Blues,Delta Morse,blues,sad,0.48,68,0.33,0.49,0.65
