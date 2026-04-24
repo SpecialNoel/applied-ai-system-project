@@ -64,6 +64,36 @@ pytest
 
 You can add more tests in `tests/test_recommender.py`.
 
+### Query with LLM
+
+This project uses Ollama, a free LLM model (TinyLlama to be exact), to process the natural language queries into music preferences. Note that due to the limitation of the used LLM model, the reasoning on why the model makes its suggestion on recommending songs can be incomplete.
+
+1. Start Ollama with:
+
+```
+ollama serve
+```
+
+You should see "Listening on 127.0.0.1:11434".
+
+2. Download the TinyLlama model (for first-time use only):
+
+```
+ollama pull tinyllama
+```
+
+3. Run the program with demo:
+
+```
+python3 demo_natural_language.py
+```
+
+4. Run the program with own query:
+
+```
+python3 -m src.main
+```
+
 ---
 
 ## Experiments You Tried

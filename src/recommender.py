@@ -35,36 +35,64 @@ class Recommender:
     """
     OOP implementation of the recommendation logic.
     Required by tests/test_recommender.py
+
+    Pass a SongEmbedder instance to enable RAG mode, where genre and mood
+    are matched semantically instead of with exact string comparison.
     """
-    def __init__(self, songs: List[Dict]):
+    def __init__(self, songs: List[Dict], embedder=None):
         """Initialize the recommender with a list of song dicts."""
         self.songs = songs
+        self.embedder = embedder
+        self._song_embeddings = None
+        if embedder is not None:
+            self._song_embeddings = embedder.embed_songs(songs)
 
-    def score_song(self, user: Dict, song: Dict) -> Tuple[float, List[str]]:
+    def _get_semantic_scores(self, user: Dict) -> List[float]:
+        """
+        Batch-compute a semantic similarity score in [0, 1] for every song
+        against the user profile. Called once per recommend() call.
+        """
+        user_emb = self.embedder.embed_user(user)
+        return self.embedder.cosine_similarities(user_emb, self._song_embeddings)
+
+    def score_song(self, user: Dict, song: Dict, semantic_score: float = None) -> Tuple[float, List[str]]:
         '''
-        Return a list of tuples, for which each contains a recommendation score 
-          for the song as well as a list of reasons (strings) that explains how
-          the score was calculated
+        Return (score, reasons) for a single song.
+
+        When semantic_score is provided (RAG mode), the combined 0.55-point
+        genre + mood component is replaced by 0.55 * semantic_score so that
+        near-synonym moods and genres still earn partial credit.
+        When semantic_score is None (classic mode), exact string matching is
+        used as before.
         '''
-        
         score = 0.0
         reasons = []
 
-        mood_points = 0.35 if user['mood'] == song['mood'] else 0
-        score += mood_points
-        if mood_points:
-            reasons.append(f"Mood matches your favorite '{song['mood']}' (+{mood_points:.2f})")
+        if semantic_score is not None:
+            # RAG: continuous semantic similarity replaces binary genre + mood match
+            semantic_points = 0.55 * semantic_score
+            score += semantic_points
+            reasons.append(
+                f"Semantic similarity (mood + genre) {semantic_score:.2f} (+{semantic_points:.2f})"
+            )
         else:
-            reasons.append(f"Mood '{song['mood']}' does not match your favorite '{user['mood']}' (+0.00)")
-        mood_points = 0
+            # Classic: exact string matching
+            mood_points = 0.35 if user['mood'] == song['mood'] else 0
+            score += mood_points
+            if mood_points:
+                reasons.append(f"Mood matches your favorite '{song['mood']}' (+{mood_points:.2f})")
+            else:
+                reasons.append(f"Mood '{song['mood']}' does not match your favorite '{user['mood']}' (+0.00)")
+            mood_points = 0
 
-        genre_points = 0.20 if user['genre'] == song['genre'] else 0
-        score += genre_points
-        if genre_points:
-            reasons.append(f"Genre matches your favorite '{song['genre']}' (+{genre_points:.2f})")
-        else:
-            reasons.append(f"Genre '{song['genre']}' does not match your favorite '{user['genre']}' (+0.00)")
+            genre_points = 0.20 if user['genre'] == song['genre'] else 0
+            score += genre_points
+            if genre_points:
+                reasons.append(f"Genre matches your favorite '{song['genre']}' (+{genre_points:.2f})")
+            else:
+                reasons.append(f"Genre '{song['genre']}' does not match your favorite '{user['genre']}' (+0.00)")
 
+        # Numeric features — identical in both modes
         energy_points = 0.20 * (1 - abs(song['energy'] - user['energy']))
         score += energy_points
         reasons.append(f"Energy {song['energy']:.2f} vs your target {user['energy']:.2f} (+{energy_points:.2f})")
@@ -89,10 +117,17 @@ class Recommender:
 
     def recommend(self, user: Dict, k: int = 5) -> List[Dict]:
         '''
-        Return a list of song dicts that will be recommended to the user
+        Return the top-k recommended song dicts for the user.
+        Uses RAG scoring if an embedder was provided at init, else classic.
         '''
-        
-        scored = [(song, self.score_song(user, song)[0]) for song in self.songs]
+        if self.embedder is not None:
+            sem_scores = self._get_semantic_scores(user)
+            scored = [
+                (song, self.score_song(user, song, semantic_score=sem)[0])
+                for song, sem in zip(self.songs, sem_scores)
+            ]
+        else:
+            scored = [(song, self.score_song(user, song)[0]) for song in self.songs]
         scored.sort(key=lambda x: x[1], reverse=True)
         return [song for song, _ in scored[:k]]
 
@@ -119,11 +154,20 @@ def load_songs(csv_path: str) -> List[Dict]:
             })
     return songs
 
-def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
+def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5, embedder=None) -> List[Tuple[Dict, float, List[str]]]:
     """
     Functional implementation of the recommendation logic.
     Required by src/main.py
+
+    Pass a SongEmbedder as embedder to enable RAG mode.
     """
-    recommender = Recommender(songs)
-    scored = [(song, *recommender.score_song(user_prefs, song)) for song in songs]
+    recommender = Recommender(songs, embedder=embedder)
+    if embedder is not None:
+        sem_scores = recommender._get_semantic_scores(user_prefs)
+        scored = [
+            (song, *recommender.score_song(user_prefs, song, semantic_score=sem))
+            for song, sem in zip(songs, sem_scores)
+        ]
+    else:
+        scored = [(song, *recommender.score_song(user_prefs, song)) for song in songs]
     return sorted(scored, key=lambda x: x[1], reverse=True)[:k]

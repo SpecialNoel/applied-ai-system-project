@@ -2,7 +2,7 @@
 
 ## 1. Model Name
 
-**VibeRanker 1.0**
+**VibeRanker 2.0**
 
 ---
 
