@@ -8,13 +8,19 @@ Runs the same user profile through two modes side-by-side:
 Supports natural language preference input using Ollama (local LLM, free).
 """
 
-import sys
 from .recommender import load_songs, recommend_songs
 from .embedder import SongEmbedder
 from .preference_parser import extract_with_reasoning, check_ollama_running
 
-# Check if Ollama is available
 HAS_OLLAMA = check_ollama_running()
+
+_DEFAULT_PROFILE = {
+    "genre": "pop",
+    "mood": "intense",
+    "energy": 0.8,
+    "acousticness": 0.1,
+    "valence": 0.2,
+}
 
 
 def print_recommendations(title: str, recommendations: list) -> None:
@@ -31,10 +37,8 @@ def print_recommendations(title: str, recommendations: list) -> None:
     print()
 
 
-def get_user_preference():
-    """
-    Interactively get user preference from natural language or use default.
-    """
+def get_user_preference() -> dict:
+    """Interactively get user preference from natural language or use default."""
     print("\n" + "=" * 55)
     print("  MUSIC PREFERENCE INPUT")
     print("=" * 55)
@@ -46,7 +50,7 @@ def get_user_preference():
         default_choice = "2"
     else:
         options += "\n  1. Use default profile (pop, intense, 0.8 energy)"
-        options += "\n\n  💡 Tip: Install Ollama to enable natural language queries!"
+        options += "\n\n  Tip: Install Ollama to enable natural language queries!"
         options += "\n     Download from: https://ollama.ai"
         default_choice = "1"
 
@@ -58,59 +62,35 @@ def get_user_preference():
         query = input("\nDescribe the music you want: ").strip()
         if not query:
             print("Empty query, using default profile.")
-            return {
-                "genre": "pop",
-                "mood": "intense",
-                "energy": 0.8,
-                "acousticness": 0.1,
-                "valence": 0.2,
-            }
+            return dict(_DEFAULT_PROFILE)
 
         print("\nParsing your preference with Ollama...")
         try:
             result = extract_with_reasoning(query)
             prefs = result["preference"]
-            reasoning = result["reasoning"]
-
-            print(f"\n✓ Extracted preference:")
+            print(f"\nExtracted preference:")
             print(f"  Query: '{query}'")
-            print(f"  Reasoning: {reasoning}")
+            print(f"  Reasoning: {result['reasoning']}")
             print(f"  Profile: {prefs}")
-
             return prefs
         except Exception as e:
-            print(f"\n❌ Error: {e}")
+            print(f"\nError: {e}")
             print("Using default profile instead.")
-            return {
-                "genre": "pop",
-                "mood": "intense",
-                "energy": 0.8,
-                "acousticness": 0.1,
-                "valence": 0.2,
-            }
-    else:
-        return {
-            "genre": "pop",
-            "mood": "intense",
-            "energy": 0.8,
-            "acousticness": 0.1,
-            "valence": 0.2,
-        }
+            return dict(_DEFAULT_PROFILE)
+
+    return dict(_DEFAULT_PROFILE)
 
 
 def main() -> None:
     songs = load_songs("data/songs.csv")
     print(f"Loaded {len(songs)} songs.")
 
-    # Get user preference (natural language or default)
     user_prefs = get_user_preference()
     print(f"\nUser profile: {user_prefs}")
 
-    # --- Classic mode (no embedder) ---
     classic_recs = recommend_songs(user_prefs, songs, k=5)
     print_recommendations("CLASSIC MODE  (exact genre + mood match)", classic_recs)
 
-    # --- RAG mode ---
     print("Loading sentence-transformer model (downloads once on first run)...")
     embedder = SongEmbedder()
     print("Model ready.\n")

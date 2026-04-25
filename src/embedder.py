@@ -17,29 +17,29 @@ class SongEmbedder:
     def __init__(self, model_name: str = "BAAI/bge-small-en-v1.5"):
         self.model = TextEmbedding(model_name)
 
+    @staticmethod
+    def _energy_word(energy: float) -> str:
+        if energy > 0.7:
+            return "high-energy"
+        if energy > 0.4:
+            return "medium-energy"
+        return "low-energy"
+
+    @staticmethod
+    def _acoustic_word(acousticness: float) -> str:
+        return "acoustic" if acousticness > 0.6 else "electronic"
+
     def song_to_text(self, song: Dict) -> str:
-        energy_word = (
-            "high-energy" if song["energy"] > 0.7
-            else "medium-energy" if song["energy"] > 0.4
-            else "low-energy"
-        )
-        acoustic_word = "acoustic" if song["acousticness"] > 0.6 else "electronic"
         return (
             f"A {song['mood']} {song['genre']} song. "
-            f"It is {energy_word} and {acoustic_word}, "
+            f"It is {self._energy_word(song['energy'])} and {self._acoustic_word(song['acousticness'])}, "
             f"with a tempo of {song['tempo_bpm']:.0f} BPM."
         )
 
     def user_to_text(self, user: Dict) -> str:
-        energy_word = (
-            "high-energy" if user["energy"] > 0.7
-            else "medium-energy" if user["energy"] > 0.4
-            else "low-energy"
-        )
-        acoustic_word = "acoustic" if user["acousticness"] > 0.6 else "electronic"
         return (
             f"I want a {user['mood']} {user['genre']} song. "
-            f"I prefer {energy_word} and {acoustic_word} music."
+            f"I prefer {self._energy_word(user['energy'])} and {self._acoustic_word(user['acousticness'])} music."
         )
 
     def embed(self, texts: List[str]) -> np.ndarray:
@@ -58,9 +58,8 @@ class SongEmbedder:
 
     def cosine_similarities(self, user_emb: np.ndarray, song_embs: np.ndarray) -> List[float]:
         """
-        Compute cosine similarity between the user embedding and each song
-        embedding. Because both are L2-normalized, this is a dot product.
-        Maps the result from [-1, 1] to [0, 1].
+        Dot product of L2-normalized vectors equals cosine similarity.
+        Remapped from [-1, 1] to [0, 1].
         """
         raw = song_embs @ user_emb  # shape (N,)
         return ((raw + 1) / 2).tolist()

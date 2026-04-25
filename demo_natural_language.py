@@ -56,6 +56,7 @@ def main():
 
             for i, (song, score, reasons) in enumerate(recs, 1):
                 print(f"\n  #{i} {song['title']} by {song['artist']}")
+                print(f"      Genre: {song['genre']} | Mood: {song['mood']}")
                 print(f"      Score: {score:.2f}")
 
         except Exception as e:
