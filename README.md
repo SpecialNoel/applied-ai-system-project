@@ -80,8 +80,10 @@ python3 -m src.main
 
 Run the starter tests with:
 
-```bash
-pytest
+```
+python3 -m pytest tests/test_preference_parser.py -v
+python3 -m pytest tests/test_rag.py -v
+python3 -m pytest tests/test_recommender.py -v
 ```
 
 ## Experiments You Tried
@@ -227,3 +229,7 @@ I was surprised that the LLM as well as the embedding system utilized by the mod
 The utilization of AI tools helped me break down some potential biases existed in the system. I needed to double-check the response provided by these tools when I noticed that the formatting (e.g. the return type of a function) from the response is different from the parameters required by other functions, for which this could cause the system to function incorrectly.
 
 ---
+
+## Loom Demo Video Link
+
+https://www.loom.com/share/43582168db764522b7f499a2d08fb5c7
